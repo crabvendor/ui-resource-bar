@@ -63,9 +63,10 @@ drawBarFrame:SetScript(
     energyBar:SetPoint("BOTTOMRIGHT", energyBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
     energyBar:SetStatusBarColor(unpack(powerColors[3]))
 
+    -- text
     energyBarText = energyBar:CreateFontString(nil, "OVERLAY")
     energyBarText:SetFont(cfg.text.font, cfg.text.size, "THINOUTLINE")
-    energyBarText:SetPoint("TOP", energyBar, "TOP", SnapToPixel(0), SnapToPixel(7))
+    energyBarText:SetPoint(cfg.text.pos.a1, cfg.text.pos.af, cfg.text.pos.a2, SnapToPixel(cfg.text.pos.x), SnapToPixel(cfg.text.pos.y))
     energyBarText:SetJustifyH("RIGHT")
 
     energyBar:SetScript(

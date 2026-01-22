@@ -4,6 +4,8 @@ local mediapath = "Interface\\AddOns\\"..A.."\\media\\"
 
 L.cfg = {
 
+  pos = { a1 = "CENTER", a2 = "CENTER", af = "UIParent", x = 0, y = -251 },
+
   bar = {
     height = 16,
     width = 210,
@@ -17,13 +19,11 @@ L.cfg = {
     pos = { a1 = "LEFT", a2 = "LEFT", af = "energyBarBg", x = 0, y = -18 },
     spacing = 2,
   },
-
-  pos = { a1 = "CENTER", a2 = "CENTER", af = "UIParent", x = 0, y = -251 },
-
+  
   text = {
     font = mediapath.."Expressway.ttf",
     size = 15,
-    pos = { a1 = "BOTTOM", a2 = "TOP", af = "energyBar", x = 0, y = 0 },
+    pos = { a1 = "TOP", a2 = "TOP", af = "energyBar", x = 0, y = 7 },
   },
 
   colors = {
