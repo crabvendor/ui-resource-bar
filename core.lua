@@ -97,8 +97,6 @@ drawBarFrame:SetScript(
       end
     )
     energyBar:Show()
-
-
   end
 )
 

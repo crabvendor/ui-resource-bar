@@ -1,6 +1,6 @@
 ## Interface: 120000
 
-## Title: |cff1784d1|Resource|r
+## Title: Resource Bar
 ## Author: Stan
 ## Version: v1.0.0
 
