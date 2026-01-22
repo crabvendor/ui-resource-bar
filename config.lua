@@ -11,6 +11,7 @@ L.cfg = {
   },
 
   cp = {
+    enabled = true,
     height = 16,
     texture = mediapath.."Skullflower",
     pos = { a1 = "LEFT", a2 = "LEFT", af = "energyBarBg", x = 0, y = -18 },

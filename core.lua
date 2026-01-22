@@ -1,7 +1,7 @@
 local A, L = ...
 local cfg = L.cfg
 
-local abs, max, min = math.abs, math.max, math.min
+local abs, maxCp, min = math.abs, math.maxCp, math.min
 
 local energyBarBg, energyBar, energyBarText
 local cpArray
@@ -41,83 +41,12 @@ local powerColors = {
   [18] = cfg.colors.pain
 }
 
-local cpColors = {
-  [1] = {r = 1, g = 0.76, b = 0},
-  [2] = {r = 1, g = 0.76, b = 0},
-  [3] = {r = 1, g = 0.76, b = 0},
-  [4] = {r = 1, g = 0.76, b = 0},
-  [5] = {r = 0.78, g = 0, b = 0.22},
-  [6] = {r = 0.56, g = 0.05, b = 0.25},
-  [7] = {r = 0.56, g = 0.05, b = 0.25}
-}
-
-local function calculateCpWidth(maxCp)
-  local totalWidth = SnapToPixel(cfg.bar.width)
-  local gapSize = SnapToPixel(cfg.cp.spacing)
-  local spacing = (maxCp - 1) * gapSize
-  local availableWidth = totalWidth - spacing
-  return availableWidth / maxCp
-end
-
-local function positionCpArray(cpArray, maxCp)
-  for i = 1, maxCp do
-    local cpBarBg = cpArray[i]
-    if i == 1 then
-      cpBarBg:SetPoint(cfg.cp.pos.a1, cfg.cp.pos.af, cfg.cp.pos.a2, SnapToPixel(cfg.cp.pos.x), SnapToPixel(cfg.cp.pos.y))
-    else
-      cpBarBg:SetPoint("LEFT", cpArray[i - 1], "RIGHT", SnapToPixel(cfg.cp.spacing), 0)
-    end
-  end
-end
-
-local function ensureCpFrames(newMax)
-  -- Create only missing frames (lazy creation)
-  for i = #cpArray + 1, newMax do
-    local cpBarBg = CreateFrame("Frame", "cpBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
-    cpBarBg:SetHeight(SnapToPixel(cfg.cp.height))
-    cpBarBg:SetBackdrop(backdrop_tab)
-    cpBarBg:SetBackdropColor(unpack(cfg.colors.bg))
-    cpBarBg:SetBackdropBorderColor(unpack(cfg.colors.bg))
-
-    local cpBar = CreateFrame("StatusBar", "cpBar", cpBarBg, BackdropTemplateMixin and "BackdropTemplate")
-    cpBar:SetStatusBarTexture(cfg.cp.texture)
-    cpBar:SetPoint("TOPLEFT", cpBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
-    cpBar:SetPoint("BOTTOMRIGHT", cpBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
-    cpBar:SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
-    cpBar:SetMinMaxValues(0, 1)
-    cpBar:SetValue(1)
-
-    table.insert(cpArray, cpBarBg)
-  end
-
-  local totalWidth = SnapToPixel(cfg.bar.width)
-  local gapSize = SnapToPixel(cfg.cp.spacing)
-  local cpWidth = SnapToPixel(calculateCpWidth(newMax))
-
-  for i = 1, newMax do
-    if i == newMax then
-      local usedWidth = (newMax - 1) * cpWidth + (newMax - 1) * gapSize
-      cpArray[i]:SetWidth(totalWidth - usedWidth)
-    else
-      cpArray[i]:SetWidth(cpWidth)
-    end
-    cpArray[i]:Show()
-  end
-
-  for i = newMax + 1, #cpArray do
-    cpArray[i]:Hide()
-  end
-
-  positionCpArray(cpArray, newMax)
-end
-
--- DRAW INITIAL FRAMES
-drawFrame = CreateFrame("Frame")
-drawFrame:RegisterEvent("PLAYER_LOGIN")
-drawFrame:SetScript(
+-- ENERGY BAR
+drawBarFrame = CreateFrame("Frame")
+drawBarFrame:RegisterEvent("PLAYER_LOGIN")
+drawBarFrame:SetScript(
   "OnEvent",
   function()
-    -- ENERGY BAR
     -- background
     energyBarBg = CreateFrame("Frame", "energyBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
     energyBarBg:SetHeight(SnapToPixel(cfg.bar.height))
@@ -168,15 +97,107 @@ drawFrame:SetScript(
     )
     energyBar:Show()
 
-    -- CPS
-    cpArray = {}
-    local max = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-    local current = UnitPower("player", Enum.PowerType.ComboPoints)
-    ensureCpFrames(max)
 
-    for i = 1, max do
-      cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
+  end
+)
+
+-- CPS
+local cpColors = {
+  [1] = {r = 1, g = 0.76, b = 0},
+  [2] = {r = 1, g = 0.76, b = 0},
+  [3] = {r = 1, g = 0.76, b = 0},
+  [4] = {r = 1, g = 0.76, b = 0},
+  [5] = {r = 0.78, g = 0, b = 0.22},
+  [6] = {r = 0.56, g = 0.05, b = 0.25},
+  [7] = {r = 0.56, g = 0.05, b = 0.25}
+}
+
+local function calculateCpWidth(maxCp, width, spacing)
+  local totalSpacing = (maxCp - 1) * spacing
+  local availableWidth = width - totalSpacing
+  return availableWidth / maxCp
+end
+
+local function positionCpArray(cpArray, maxCp)
+  for i = 1, maxCp do
+    local cpBarBg = cpArray[i]
+    if i == 1 then
+      cpBarBg:SetPoint(
+        cfg.cp.pos.a1,
+        cfg.cp.pos.af,
+        cfg.cp.pos.a2,
+        SnapToPixel(cfg.cp.pos.x),
+        SnapToPixel(cfg.cp.pos.y)
+      )
+    else
+      cpBarBg:SetPoint("LEFT", cpArray[i - 1], "RIGHT", SnapToPixel(cfg.cp.spacing), 0)
     end
+  end
+end
+
+local function setCurrentCpState(current, max)
+  for i = 1, max do
+    cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
+  end
+end
+
+local function drawCps(maxCp)
+  -- only create missing ones, avoids recreating on every redraw
+  for i = #cpArray + 1, maxCp do
+    local cpBarBg = CreateFrame("Frame", "cpBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+    cpBarBg:SetHeight(SnapToPixel(cfg.cp.height))
+    cpBarBg:SetBackdrop(backdrop_tab)
+    cpBarBg:SetBackdropColor(unpack(cfg.colors.bg))
+    cpBarBg:SetBackdropBorderColor(unpack(cfg.colors.bg))
+
+    local cpBar = CreateFrame("StatusBar", "cpBar", cpBarBg, BackdropTemplateMixin and "BackdropTemplate")
+    cpBar:SetStatusBarTexture(cfg.cp.texture)
+    cpBar:SetPoint("TOPLEFT", cpBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
+    cpBar:SetPoint("BOTTOMRIGHT", cpBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
+    cpBar:SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+    cpBar:SetMinMaxValues(0, 1)
+    cpBar:SetValue(1)
+    table.insert(cpArray, cpBarBg)
+  end
+
+  local totalWidth = SnapToPixel(cfg.bar.width)
+  local gapSize = SnapToPixel(cfg.cp.spacing)
+  local cpWidth = SnapToPixel(calculateCpWidth(maxCp, cfg.bar.width, cfg.cp.spacing))
+
+  -- weird shit to stop cps from overflowing by 1px, something is not rounding down
+  for i = 1, maxCp do
+    if i == maxCp then
+      local usedWidth = (maxCp - 1) * cpWidth + (maxCp - 1) * gapSize
+      cpArray[i]:SetWidth(totalWidth - usedWidth)
+    else
+      cpArray[i]:SetWidth(cpWidth)
+    end
+    cpArray[i]:Show()
+  end
+
+  -- hide inactive ones, that exceed current allowed talented max
+  for i = maxCp + 1, #cpArray do
+    cpArray[i]:Hide()
+  end
+
+  -- reposition all
+  positionCpArray(cpArray, maxCp)
+end
+
+drawCpFrame = CreateFrame("Frame")
+drawCpFrame:RegisterEvent("PLAYER_LOGIN")
+drawCpFrame:SetScript(
+  "OnEvent",
+  function()
+    if cfg.cp.enabled == false then
+      return
+    end
+    
+    cpArray = {}
+    local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
+    local current = UnitPower("player", Enum.PowerType.ComboPoints)
+    drawCps(maxCp)
+    setCurrentCpState(current, maxCp)
 
     controller = CreateFrame("Frame")
     controller:RegisterEvent("UNIT_POWER_UPDATE")
@@ -185,30 +206,22 @@ drawFrame:SetScript(
       function(self, event, unit, powerType)
         if unit == "player" and powerType == "COMBO_POINTS" then
           local current = UnitPower("player", Enum.PowerType.ComboPoints)
-          local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-          for i = 1, maxCp do
-            cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
-          end
+          setCurrentCpState(current, maxCp)
         end
       end
     )
-  end
-)
 
--- RECALC CPS ON CHANGE
-recalcFrame = CreateFrame("Frame")
-recalcFrame:RegisterEvent("UNIT_MAXPOWER")
-recalcFrame:SetScript(
-  "OnEvent",
-  function(self, event, unit, powerType)
-    if unit == "player" and powerType == "COMBO_POINTS" then
-      local newMax = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-      ensureCpFrames(newMax)
-      
-      local current = UnitPower("player", Enum.PowerType.ComboPoints)
-      for i = 1, newMax do
-        cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
+    -- RECALC CPS ON CHANGE
+    recalcFrame = CreateFrame("Frame")
+    recalcFrame:RegisterEvent("UNIT_MAXPOWER")
+    recalcFrame:SetScript(
+      "OnEvent",
+      function(self, event, unit, powerType)
+        if unit == "player" and powerType == "COMBO_POINTS" then
+          local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
+          drawCps(maxCp)
+        end
       end
-    end
+    )
   end
 )
