@@ -18,6 +18,7 @@ L.cfg = {
     texture = mediapath.."Skullflower",
     pos = { a1 = "LEFT", a2 = "LEFT", af = "energyBarBg", x = 0, y = -18 },
     spacing = 2,
+    chargedColour = { 66/255, 164/255, 245/255, 1 },
   },
   
   text = {

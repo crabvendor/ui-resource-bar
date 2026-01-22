@@ -66,7 +66,13 @@ drawBarFrame:SetScript(
     -- text
     energyBarText = energyBar:CreateFontString(nil, "OVERLAY")
     energyBarText:SetFont(cfg.text.font, cfg.text.size, "THINOUTLINE")
-    energyBarText:SetPoint(cfg.text.pos.a1, cfg.text.pos.af, cfg.text.pos.a2, SnapToPixel(cfg.text.pos.x), SnapToPixel(cfg.text.pos.y))
+    energyBarText:SetPoint(
+      cfg.text.pos.a1,
+      cfg.text.pos.af,
+      cfg.text.pos.a2,
+      SnapToPixel(cfg.text.pos.x),
+      SnapToPixel(cfg.text.pos.y)
+    )
     energyBarText:SetJustifyH("RIGHT")
 
     energyBar:SetScript(
@@ -134,9 +140,27 @@ local function positionCpArray(cpArray, maxCp)
   end
 end
 
-local function setCurrentCpState(current, max)
+local function contains(table, element)
+  for _, value in pairs(table) do
+    if value == element then
+      return true
+    end
+  end
+  return false
+end
+
+local function setCurrentCpState(current, max, chargedIndices)
   for i = 1, max do
     cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
+    if chargedIndices then
+      if contains(chargedIndices, i) then
+        cpArray[i]:GetChildren():SetStatusBarColor(unpack(cfg.cp.chargedColour))
+      else
+        cpArray[i]:GetChildren():SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+      end
+    else
+      cpArray[i]:GetChildren():SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+    end
   end
 end
 
@@ -185,21 +209,31 @@ drawCpFrame:SetScript(
     if cfg.cp.enabled == false then
       return
     end
-    
+
     cpArray = {}
     local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
     local current = UnitPower("player", Enum.PowerType.ComboPoints)
     drawCps(maxCp)
-    setCurrentCpState(current, maxCp)
+    local chargedIndices = GetUnitChargedPowerPoints("player")
+    setCurrentCpState(current, maxCp, chargedIndices)
 
     controller = CreateFrame("Frame")
     controller:RegisterEvent("UNIT_POWER_UPDATE")
+    controller:RegisterEvent("UNIT_POWER_POINT_CHARGE")
     controller:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
-        if unit == "player" and powerType == "COMBO_POINTS" then
-          local current = UnitPower("player", Enum.PowerType.ComboPoints)
-          setCurrentCpState(current, maxCp)
+        local current = UnitPower("player", Enum.PowerType.ComboPoints)
+        local chargedIndices = GetUnitChargedPowerPoints(unit)
+        if (event == "UNIT_POWER_UPDATE") then
+          if unit == "player" and powerType == "COMBO_POINTS" then
+            setCurrentCpState(current, maxCp, chargedIndices)
+          end
+        end
+        if (event == "UNIT_POWER_POINT_CHARGE") then
+          if unit == "player" then
+            setCurrentCpState(current, maxCp, chargedIndices)
+          end
         end
       end
     )
