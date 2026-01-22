@@ -161,16 +161,10 @@ local function drawCps(maxCp)
 
   local totalWidth = SnapToPixel(cfg.bar.width)
   local gapSize = SnapToPixel(cfg.cp.spacing)
-  local cpWidth = SnapToPixel(calculateCpWidth(maxCp, cfg.bar.width, cfg.cp.spacing))
+  local cpWidth = calculateCpWidth(maxCp, totalWidth, gapSize)
 
-  -- weird shit to stop cps from overflowing by 1px, something is not rounding down
   for i = 1, maxCp do
-    if i == maxCp then
-      local usedWidth = (maxCp - 1) * cpWidth + (maxCp - 1) * gapSize
-      cpArray[i]:SetWidth(totalWidth - usedWidth)
-    else
-      cpArray[i]:SetWidth(cpWidth)
-    end
+    cpArray[i]:SetWidth(cpWidth)
     cpArray[i]:Show()
   end
 
