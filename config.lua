@@ -1,6 +1,14 @@
 local A, L = ...
 
 local mediapath = "Interface\\AddOns\\"..A.."\\media\\"
+local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+
+-- Register your custom media with LSM if available
+if LSM then
+  LSM:Register("statusbar", "Skullflower", mediapath.."Skullflower")
+  LSM:Register("statusbar", "Skullflower3", mediapath.."Skullflower3")
+  LSM:Register("font", "Expressway", mediapath.."Expressway.ttf")
+end
 
 L.cfg = {
 
@@ -9,20 +17,20 @@ L.cfg = {
   bar = {
     height = 16,
     width = 210,
-    texture = mediapath.."Skullflower3",
+    texture = LSM and LSM:Fetch("statusbar", "Skullflower3") or mediapath.."Skullflower3",
   },
 
   cp = {
     enabled = true,
     height = 16,
-    texture = mediapath.."Skullflower",
+    texture = LSM and LSM:Fetch("statusbar", "Skullflower") or mediapath.."Skullflower",
     pos = { a1 = "LEFT", a2 = "LEFT", af = "energyBarBg", x = 0, y = -18 },
     spacing = 2,
     chargedColour = { 66/255, 164/255, 245/255, 1 },
   },
-  
+
   text = {
-    font = mediapath.."Expressway.ttf",
+    font = LSM and LSM:Fetch("font", "Expressway") or mediapath.."Expressway.ttf",
     size = 15,
     pos = { a1 = "TOP", a2 = "TOP", af = "energyBar", x = 0, y = 7 },
   },
@@ -30,7 +38,7 @@ L.cfg = {
   colors = {
     bg         = {   0/255,   0/255,   0/255, 1 },
     mana       = {   0/255, 190/255, 230/255, 1 },
-    rage       = {  102/0,  65/255,  65/255, 1 },
+    rage       = { 102/255,  65/255,  65/255, 1 },
     focus      = { 230/255, 140/255,  60/255, 1 },
     energy     = { 246/255, 222/255,  32/255, 1 },
     runicpower = {   0/255, 190/255, 230/255, 1 },

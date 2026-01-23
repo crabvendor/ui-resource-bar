@@ -217,7 +217,7 @@ local function updateChargedCp()
   chargedIndices = GetUnitChargedPowerPoints("player")
 end
 
-local function hasCp() 
+local function hasCp()
   return UnitPowerMax("player", Enum.PowerType.ComboPoints) > 0
 end
 

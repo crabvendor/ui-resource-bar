@@ -3,6 +3,7 @@
 ## Title: Resource Bar
 ## Author: Stan
 ## Version: v1.0.0
+## OptionalDeps: LibSharedMedia-3.0
 
 config.lua
 core.lua
