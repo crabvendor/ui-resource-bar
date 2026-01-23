@@ -104,13 +104,10 @@ drawBarFrame:SetScript(
 )
 
 -- CPS
-local maxCp
-local specCfg
 local cpArray = {}
 
-local function prepareSpec()
-  local specID = GetSpecializationInfo(GetSpecialization())
-  specCfg = cfg.specs[specID]
+local function getSpecId()
+  return GetSpecializationInfo(GetSpecialization())
 end
 
 local function calculateCpWidth(maxCp, width, spacing)
@@ -146,22 +143,14 @@ local function contains(table, element)
 end
 
 local function setCpColour(cp, index, max)
-  if specCfg and specCfg.cpColours then
-    if index == max then
-      cp:SetStatusBarColor(specCfg.cpColours["last"].r, specCfg.cpColours["last"].g, specCfg.cpColours["last"].b)
-    elseif index > max - specCfg.finishOffset then
-      cp:SetStatusBarColor(
-        specCfg.cpColours["finish"].r,
-        specCfg.cpColours["finish"].g,
-        specCfg.cpColours["finish"].b
-      )
-    else
-      cp:SetStatusBarColor(
-        specCfg.cpColours["standard"].r,
-        specCfg.cpColours["standard"].g,
-        specCfg.cpColours["standard"].b
-      )
-    end
+  local specId = getSpecId()
+  local specCfg = cfg.specs[specId]
+  if index == max then
+    cp:SetStatusBarColor(unpack(specCfg.cpColours["last"]))
+  elseif index > max - specCfg.finishOffset then
+    cp:SetStatusBarColor(unpack(specCfg.cpColours["finish"]))
+  else
+    cp:SetStatusBarColor(unpack(specCfg.cpColours["standard"]))
   end
 end
 
@@ -181,21 +170,26 @@ local function setCurrentCpState(current, max, chargedIndices)
 end
 
 local function prepareCpFrames(maxCp) -- only create missing ones, avoids recreating on every redraw
-  for i = #cpArray + 1, maxCp do
-    local cpBarBg = CreateFrame("Frame", "cpBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
-    cpBarBg:SetHeight(SnapToPixel(cfg.cp.height))
-    cpBarBg:SetBackdrop(backdrop_tab)
-    cpBarBg:SetBackdropColor(unpack(cfg.colors.bg))
-    cpBarBg:SetBackdropBorderColor(unpack(cfg.colors.bg))
+  if #cpArray < maxCp then
+    for i = #cpArray + 1, maxCp do
+      local cpBarBg = CreateFrame("Frame", "cpBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+      cpBarBg:SetHeight(SnapToPixel(cfg.cp.height))
+      cpBarBg:SetBackdrop(backdrop_tab)
+      cpBarBg:SetBackdropColor(unpack(cfg.colors.bg))
+      cpBarBg:SetBackdropBorderColor(unpack(cfg.colors.bg))
 
-    local cpBar = CreateFrame("StatusBar", "cpBar", cpBarBg, BackdropTemplateMixin and "BackdropTemplate")
-    cpBar:SetStatusBarTexture(cfg.cp.texture)
-    cpBar:SetPoint("TOPLEFT", cpBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
-    cpBar:SetPoint("BOTTOMRIGHT", cpBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
-    setCpColour(cpBar, i, maxCp)
-    cpBar:SetMinMaxValues(0, 1)
-    cpBar:SetValue(1)
-    table.insert(cpArray, cpBarBg)
+      local cpBar = CreateFrame("StatusBar", "cpBar", cpBarBg, BackdropTemplateMixin and "BackdropTemplate")
+      cpBar:SetStatusBarTexture(cfg.cp.texture)
+      cpBar:SetPoint("TOPLEFT", cpBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
+      cpBar:SetPoint("BOTTOMRIGHT", cpBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
+      setCpColour(cpBar, i, maxCp)
+      cpBar:SetMinMaxValues(0, 1)
+      cpBar:SetValue(1)
+      table.insert(cpArray, cpBarBg)
+      cpCreated = true
+    end
+    -- reposition after creating new ones
+    positionCpArray(cpArray, maxCp)
   end
 
   local totalWidth = SnapToPixel(cfg.bar.width)
@@ -211,17 +205,14 @@ local function prepareCpFrames(maxCp) -- only create missing ones, avoids recrea
   for i = maxCp + 1, #cpArray do
     cpArray[i]:Hide()
   end
-
-  -- reposition all
-  positionCpArray(cpArray, maxCp)
 end
 
 local function getCurrentCp()
   return UnitPower("player", Enum.PowerType.ComboPoints)
 end
 
-local function saveMaxCp()
-  maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
+local function getMaxCp()
+  return UnitPowerMax("player", Enum.PowerType.ComboPoints)
 end
 
 local function getChargedCp()
@@ -240,26 +231,19 @@ drawCpFrame:SetScript(
     if cfg.cp.enabled == false or not hasCp() then
       return
     end
-    prepareSpec()
-    saveMaxCp()
-    prepareCpFrames(maxCp)
-    setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
 
+    prepareCpFrames(getMaxCp())
+    setCurrentCpState(getCurrentCp(), getMaxCp(), getChargedCp())
+
+    -- UPDATE CPS ON CP STATE CHANGE
     local controller = CreateFrame("Frame")
     controller:RegisterEvent("UNIT_POWER_UPDATE")
     controller:RegisterEvent("UNIT_POWER_POINT_CHARGE")
     controller:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
-        if (event == "UNIT_POWER_UPDATE") then
-          if unit == "player" and powerType == "COMBO_POINTS" then
-            setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
-          end
-        end
-        if (event == "UNIT_POWER_POINT_CHARGE") then
-          if unit == "player" then
-            setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
-          end
+        if unit == "player" and (powerType == "COMBO_POINTS" or event == "UNIT_POWER_POINT_CHARGE") then
+          setCurrentCpState(getCurrentCp(), getMaxCp(), getChargedCp())
         end
       end
     )
@@ -272,9 +256,8 @@ drawCpFrame:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
         if unit == "player" and powerType == "COMBO_POINTS" then
-          prepareSpec()
-          prepareCpFrames(maxCp)
-          setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
+          prepareCpFrames(getMaxCp())
+          setCurrentCpState(getCurrentCp(), getMaxCp(), getChargedCp())
         end
       end
     )

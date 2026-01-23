@@ -52,28 +52,25 @@ L.cfg = {
     [259] = { -- Assassination
       finishOffset = 2,
       cpColours = {
-        ["standard"] = {r = 1, g = 0.76, b = 0},
-        ["charged"] = {66 / 255, 164 / 255, 245 / 255, 1},
-        ["finish"] = {r = 0.78, g = 0, b = 0.22},
-        ["last"] = {r = 0.56, g = 0.05, b = 0.25},
+        ["standard"] = {1, 0.76, 0},
+        ["finish"] = {0.78, 0, 0.22},
+        ["last"] = {0.56, 0.05, 0.25},
       },
     },
     [260] = { -- Outlaw
       finishOffset = 3,
       cpColours = {
-        ["standard"] = {r = 1, g = 0.76, b = 0},
-        ["charged"] = {66 / 255, 164 / 255, 245 / 255, 1},
-        ["finish"] = {r = 0.78, g = 0, b = 0.22},
-        ["last"] = {r = 0.56, g = 0.05, b = 0.25},
+        ["standard"] = {1, 0.76, 0},
+        ["finish"] = {0.78, 0, 0.22},
+        ["last"] = {0.56, 0.05, 0.25},
       },
     },
     [261] = { -- Subtlety
       finishOffset = 2,
       cpColours = {
-        ["standard"] = {r = 1, g = 0.76, b = 0},
-        ["charged"] = {66 / 255, 164 / 255, 245 / 255, 1},
-        ["finish"] = {r = 0.78, g = 0, b = 0.22},
-        ["last"] = {r = 0.56, g = 0.05, b = 0.25},
+        ["standard"] = {1, 0.76, 0},
+        ["finish"] = {0.78, 0, 0.22},
+        ["last"] = {0.56, 0.05, 0.25},
       },
     },
   }
