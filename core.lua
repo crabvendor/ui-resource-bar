@@ -104,18 +104,14 @@ drawBarFrame:SetScript(
 )
 
 -- CPS
-local maxCp, current, chargedIndices
+local maxCp
+local specCfg
 local cpArray = {}
 
-local cpColors = {
-  [1] = {r = 1, g = 0.76, b = 0},
-  [2] = {r = 1, g = 0.76, b = 0},
-  [3] = {r = 1, g = 0.76, b = 0},
-  [4] = {r = 1, g = 0.76, b = 0},
-  [5] = {r = 0.78, g = 0, b = 0.22},
-  [6] = {r = 0.56, g = 0.05, b = 0.25},
-  [7] = {r = 0.56, g = 0.05, b = 0.25}
-}
+local function prepareSpec()
+  local specID = GetSpecializationInfo(GetSpecialization())
+  specCfg = cfg.specs[specID]
+end
 
 local function calculateCpWidth(maxCp, width, spacing)
   local totalSpacing = (maxCp - 1) * spacing
@@ -149,6 +145,26 @@ local function contains(table, element)
   return false
 end
 
+local function setCpColour(cp, index, max)
+  if specCfg and specCfg.cpColours then
+    if index == max then
+      cp:SetStatusBarColor(specCfg.cpColours["last"].r, specCfg.cpColours["last"].g, specCfg.cpColours["last"].b)
+    elseif index > max - specCfg.finishOffset then
+      cp:SetStatusBarColor(
+        specCfg.cpColours["finish"].r,
+        specCfg.cpColours["finish"].g,
+        specCfg.cpColours["finish"].b
+      )
+    else
+      cp:SetStatusBarColor(
+        specCfg.cpColours["standard"].r,
+        specCfg.cpColours["standard"].g,
+        specCfg.cpColours["standard"].b
+      )
+    end
+  end
+end
+
 local function setCurrentCpState(current, max, chargedIndices)
   for i = 1, max do
     cpArray[i]:SetAlpha(i <= current and 1 or 0.3)
@@ -156,10 +172,10 @@ local function setCurrentCpState(current, max, chargedIndices)
       if contains(chargedIndices, i) then
         cpArray[i]:GetChildren():SetStatusBarColor(unpack(cfg.cp.chargedColour))
       else
-        cpArray[i]:GetChildren():SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+        setCpColour(cpArray[i]:GetChildren(), i, max)
       end
     else
-      cpArray[i]:GetChildren():SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+      setCpColour(cpArray[i]:GetChildren(), i, max)
     end
   end
 end
@@ -176,7 +192,7 @@ local function prepareCpFrames(maxCp) -- only create missing ones, avoids recrea
     cpBar:SetStatusBarTexture(cfg.cp.texture)
     cpBar:SetPoint("TOPLEFT", cpBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
     cpBar:SetPoint("BOTTOMRIGHT", cpBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
-    cpBar:SetStatusBarColor(cpColors[i].r, cpColors[i].g, cpColors[i].b)
+    setCpColour(cpBar, i, maxCp)
     cpBar:SetMinMaxValues(0, 1)
     cpBar:SetValue(1)
     table.insert(cpArray, cpBarBg)
@@ -200,22 +216,16 @@ local function prepareCpFrames(maxCp) -- only create missing ones, avoids recrea
   positionCpArray(cpArray, maxCp)
 end
 
-local function updateCurrentCp()
-  current = UnitPower("player", Enum.PowerType.ComboPoints)
+local function getCurrentCp()
+  return UnitPower("player", Enum.PowerType.ComboPoints)
 end
 
-local function updateMaxCp()
+local function saveMaxCp()
   maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
 end
 
-local function updateChargedCp()
-  chargedIndices = GetUnitChargedPowerPoints("player")
-end
-
-local function updateAllCpState()
-  updateMaxCp()
-  updateCurrentCp()
-  updateChargedCp()
+local function getChargedCp()
+  return GetUnitChargedPowerPoints("player")
 end
 
 local function hasCp()
@@ -230,9 +240,10 @@ drawCpFrame:SetScript(
     if cfg.cp.enabled == false or not hasCp() then
       return
     end
-    updateAllCpState()
+    prepareSpec()
+    saveMaxCp()
     prepareCpFrames(maxCp)
-    setCurrentCpState(current, maxCp, chargedIndices)
+    setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
 
     local controller = CreateFrame("Frame")
     controller:RegisterEvent("UNIT_POWER_UPDATE")
@@ -242,14 +253,12 @@ drawCpFrame:SetScript(
       function(self, event, unit, powerType)
         if (event == "UNIT_POWER_UPDATE") then
           if unit == "player" and powerType == "COMBO_POINTS" then
-            updateCurrentCp()
-            setCurrentCpState(current, maxCp, chargedIndices)
+            setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
           end
         end
         if (event == "UNIT_POWER_POINT_CHARGE") then
           if unit == "player" then
-            updateChargedCp()
-            setCurrentCpState(current, maxCp, chargedIndices)
+            setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
           end
         end
       end
@@ -263,9 +272,9 @@ drawCpFrame:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
         if unit == "player" and powerType == "COMBO_POINTS" then
-          updateAllCpState()
+          prepareSpec()
           prepareCpFrames(maxCp)
-          setCurrentCpState(current, maxCp, chargedIndices)
+          setCurrentCpState(getCurrentCp(), maxCp, getChargedCp())
         end
       end
     )
