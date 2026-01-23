@@ -3,6 +3,7 @@ local cfg = L.cfg
 
 local abs, maxCp, min = math.abs, math.maxCp, math.min
 
+local powerType
 local energyBarBg, energyBar, energyBarText
 local controller, drawFrame, recalcFrame
 
@@ -46,6 +47,7 @@ drawBarFrame:RegisterEvent("PLAYER_LOGIN")
 drawBarFrame:SetScript(
   "OnEvent",
   function()
+    powerType = UnitPowerType("player")
     -- background
     energyBarBg = CreateFrame("Frame", "energyBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
     energyBarBg:SetHeight(SnapToPixel(cfg.bar.height))
@@ -60,8 +62,8 @@ drawBarFrame:SetScript(
     energyBar:SetStatusBarTexture(cfg.bar.texture)
     energyBar:SetPoint("TOPLEFT", energyBarBg, "TOPLEFT", SnapToPixel(1), SnapToPixel(-1))
     energyBar:SetPoint("BOTTOMRIGHT", energyBarBg, "BOTTOMRIGHT", SnapToPixel(-1), SnapToPixel(1))
-    energyBar:SetStatusBarColor(unpack(powerColors[3]))
-
+    local powerColor = powerColors[powerType]
+    energyBar:SetStatusBarColor(unpack(powerColor))
     -- text
     energyBarText = energyBar:CreateFontString(nil, "OVERLAY")
     energyBarText:SetFont(cfg.text.font, cfg.text.size, "THINOUTLINE")
@@ -79,13 +81,10 @@ drawBarFrame:SetScript(
       function(self, elapsed)
         self:SetMinMaxValues(
           0,
-          UnitPowerMax("player", Enum.PowerType.Energy),
+          UnitPowerMax("player", powerType),
           true and Enum.StatusBarInterpolation.ExponentialEaseOut or nil
         )
-        self:SetValue(
-          UnitPower("player", Enum.PowerType.Energy),
-          true and Enum.StatusBarInterpolation.ExponentialEaseOut or nil
-        )
+        self:SetValue(UnitPower("player", powerType), true and Enum.StatusBarInterpolation.ExponentialEaseOut or nil)
       end
     )
 
@@ -96,8 +95,6 @@ drawBarFrame:SetScript(
     energyBar:SetScript(
       "OnEvent",
       function(self, event, ...)
-        local powerColor = powerColors[UnitPowerType("player")]
-        energyBar:SetStatusBarColor(unpack(powerColor))
         energyBarText:SetText(UnitPower("player"))
       end
     )
@@ -220,12 +217,16 @@ local function updateChargedCp()
   chargedIndices = GetUnitChargedPowerPoints("player")
 end
 
+local function hasCp() 
+  return UnitPowerMax("player", Enum.PowerType.ComboPoints) > 0
+end
+
 drawCpFrame = CreateFrame("Frame")
 drawCpFrame:RegisterEvent("PLAYER_LOGIN")
 drawCpFrame:SetScript(
   "OnEvent",
   function()
-    if cfg.cp.enabled == false then
+    if cfg.cp.enabled == false or not hasCp() then
       return
     end
 
