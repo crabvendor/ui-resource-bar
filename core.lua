@@ -4,7 +4,6 @@ local cfg = L.cfg
 local abs, maxCp, min = math.abs, math.maxCp, math.min
 
 local energyBarBg, energyBar, energyBarText
-local cpArray
 local controller, drawFrame, recalcFrame
 
 local function GetPixelSize()
@@ -107,6 +106,9 @@ drawBarFrame:SetScript(
 )
 
 -- CPS
+local maxCp, current, chargedIndices
+local cpArray = {}
+
 local cpColors = {
   [1] = {r = 1, g = 0.76, b = 0},
   [2] = {r = 1, g = 0.76, b = 0},
@@ -164,8 +166,7 @@ local function setCurrentCpState(current, max, chargedIndices)
   end
 end
 
-local function drawCps(maxCp)
-  -- only create missing ones, avoids recreating on every redraw
+local function prepareCpFrames(maxCp) -- only create missing ones, avoids recreating on every redraw
   for i = #cpArray + 1, maxCp do
     local cpBarBg = CreateFrame("Frame", "cpBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
     cpBarBg:SetHeight(SnapToPixel(cfg.cp.height))
@@ -201,6 +202,24 @@ local function drawCps(maxCp)
   positionCpArray(cpArray, maxCp)
 end
 
+local function updateAllCpState()
+  updateMaxCp()
+  updateCurrentCp()
+  updateChargedCp()
+end
+
+local function updateCurrentCp()
+  current = UnitPower("player", Enum.PowerType.ComboPoints)
+end
+
+local function updateMaxCp()
+  maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
+end
+
+local function updateChargedCp()
+  chargedIndices = GetUnitChargedPowerPoints("player")
+end
+
 drawCpFrame = CreateFrame("Frame")
 drawCpFrame:RegisterEvent("PLAYER_LOGIN")
 drawCpFrame:SetScript(
@@ -210,11 +229,8 @@ drawCpFrame:SetScript(
       return
     end
 
-    cpArray = {}
-    local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-    local current = UnitPower("player", Enum.PowerType.ComboPoints)
-    drawCps(maxCp)
-    local chargedIndices = GetUnitChargedPowerPoints("player")
+    updateAllCpState()
+    prepareCpFrames(maxCp)
     setCurrentCpState(current, maxCp, chargedIndices)
 
     controller = CreateFrame("Frame")
@@ -223,15 +239,15 @@ drawCpFrame:SetScript(
     controller:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
-        local current = UnitPower("player", Enum.PowerType.ComboPoints)
-        local chargedIndices = GetUnitChargedPowerPoints(unit)
         if (event == "UNIT_POWER_UPDATE") then
           if unit == "player" and powerType == "COMBO_POINTS" then
+            updateCurrentCp()
             setCurrentCpState(current, maxCp, chargedIndices)
           end
         end
         if (event == "UNIT_POWER_POINT_CHARGE") then
           if unit == "player" then
+            updateChargedCp()
             setCurrentCpState(current, maxCp, chargedIndices)
           end
         end
@@ -241,12 +257,14 @@ drawCpFrame:SetScript(
     -- RECALC CPS ON CHANGE
     recalcFrame = CreateFrame("Frame")
     recalcFrame:RegisterEvent("UNIT_MAXPOWER")
+    recalcFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     recalcFrame:SetScript(
       "OnEvent",
       function(self, event, unit, powerType)
         if unit == "player" and powerType == "COMBO_POINTS" then
-          local maxCp = UnitPowerMax("player", Enum.PowerType.ComboPoints)
-          drawCps(maxCp)
+          updateAllCpState()
+          prepareCpFrames(maxCp)
+          setCurrentCpState(current, maxCp, chargedIndices)
         end
       end
     )
