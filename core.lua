@@ -199,12 +199,6 @@ local function prepareCpFrames(maxCp) -- only create missing ones, avoids recrea
   positionCpArray(cpArray, maxCp)
 end
 
-local function updateAllCpState()
-  updateMaxCp()
-  updateCurrentCp()
-  updateChargedCp()
-end
-
 local function updateCurrentCp()
   current = UnitPower("player", Enum.PowerType.ComboPoints)
 end
@@ -215,6 +209,12 @@ end
 
 local function updateChargedCp()
   chargedIndices = GetUnitChargedPowerPoints("player")
+end
+
+local function updateAllCpState()
+  updateMaxCp()
+  updateCurrentCp()
+  updateChargedCp()
 end
 
 local function hasCp()
