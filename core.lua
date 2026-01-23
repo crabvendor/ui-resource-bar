@@ -5,18 +5,16 @@ local abs, maxCp, min = math.abs, math.maxCp, math.min
 
 local powerType
 local energyBarBg, energyBar, energyBarText
-local controller, drawFrame, recalcFrame
 
-local function GetPixelSize()
+local pixelSize
+local function calculatePixelSize()
   local physicalWidth, physicalHeight = GetPhysicalScreenSize()
   local UIScale = UIParent:GetEffectiveScale()
-  local pixelSize = 768 / physicalHeight / UIScale
-  return pixelSize
+  pixelSize = 768 / physicalHeight / UIScale
 end
 
 local function SnapToPixel(value)
-  local pixel = GetPixelSize()
-  return math.floor(value / pixel + 0.5) * pixel
+  return math.floor(value / pixelSize + 0.5) * pixelSize
 end
 
 local backdrop_tab = {
@@ -42,12 +40,15 @@ local powerColors = {
 }
 
 -- ENERGY BAR
-drawBarFrame = CreateFrame("Frame")
+local drawBarFrame = CreateFrame("Frame")
 drawBarFrame:RegisterEvent("PLAYER_LOGIN")
 drawBarFrame:SetScript(
   "OnEvent",
   function()
+    -- initialize, has to be done after log in to get correct scaling
     powerType = UnitPowerType("player")
+    calculatePixelSize()
+
     -- background
     energyBarBg = CreateFrame("Frame", "energyBarBg", UIParent, BackdropTemplateMixin and "BackdropTemplate")
     energyBarBg:SetHeight(SnapToPixel(cfg.bar.height))
@@ -229,12 +230,11 @@ drawCpFrame:SetScript(
     if cfg.cp.enabled == false or not hasCp() then
       return
     end
-
     updateAllCpState()
     prepareCpFrames(maxCp)
     setCurrentCpState(current, maxCp, chargedIndices)
 
-    controller = CreateFrame("Frame")
+    local controller = CreateFrame("Frame")
     controller:RegisterEvent("UNIT_POWER_UPDATE")
     controller:RegisterEvent("UNIT_POWER_POINT_CHARGE")
     controller:SetScript(
@@ -256,7 +256,7 @@ drawCpFrame:SetScript(
     )
 
     -- RECALC CPS ON CHANGE
-    recalcFrame = CreateFrame("Frame")
+    local recalcFrame = CreateFrame("Frame")
     recalcFrame:RegisterEvent("UNIT_MAXPOWER")
     recalcFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     recalcFrame:SetScript(
